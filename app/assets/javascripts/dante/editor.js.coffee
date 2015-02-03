@@ -82,7 +82,9 @@ class Dante.Editor extends Dante.View
   getContent: ()->
     content = $(@el).find(".section-inner").html()
     if @content_type == 'application/json'
-      JSON.stringify content
+      data =
+        editor_content: JSON.stringify(content)
+      data
     else
       content
 
