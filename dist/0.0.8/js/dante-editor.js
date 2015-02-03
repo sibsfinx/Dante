@@ -519,10 +519,8 @@
       var content;
       content = $(this.el).find(".section-inner").html();
       if (this.content_type === 'application/json') {
-        debugger;
         return JSON.stringify(content);
       } else {
-        debugger;
         return content;
       }
     };
