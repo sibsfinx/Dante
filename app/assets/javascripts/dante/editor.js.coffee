@@ -80,7 +80,11 @@ class Dante.Editor extends Dante.View
           @store()
 
   getContent: ()->
-    $(@el).find(".section-inner").html()
+    content = $(@el).find(".section-inner").html()
+    if @content_type == 'json'
+      JSON.stringify content
+    else
+      content
 
   renderTitle: ()->
     "<h3 class='graf graf--h3'>#{@title_placeholder} </h3>"
