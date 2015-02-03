@@ -516,13 +516,12 @@
     };
 
     Editor.prototype.getContent = function() {
-      var content, data;
+      var content;
       content = $(this.el).find(".section-inner").html();
       if (this.content_type === 'application/json') {
-        data = {
-          editor_content: JSON.stringify(content)
-        };
-        return data;
+        return JSON.stringify({
+          editor_content: content
+        });
       } else {
         return content;
       }
