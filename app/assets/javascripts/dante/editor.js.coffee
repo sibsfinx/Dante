@@ -32,6 +32,7 @@ class Dante.Editor extends Dante.View
     @store_url       = opts.store_url
     @spell_check     = opts.spellcheck || false
     @disable_title   = opts.disable_title || false
+    @allow_tables    = opts.allow_tables || false
     @store_interval  = opts.store_interval || 15000
     window.debugMode = opts.debug || false
     $(@el).addClass("debug") if window.debugMode
@@ -879,7 +880,7 @@ class Dante.Editor extends Dante.View
 
     setTimeout ()=>
       #clean context and wrap text nodes
-      @cleanContents(@element)
+      @cleanContents(@element, allow_tables: @allow_tables)
       @wrapTextNodes(@element)
       #setup classes
       _.each  @element.children(), (n)=>
@@ -894,15 +895,79 @@ class Dante.Editor extends Dante.View
       cb() if _.isFunction(cb)
     , 20
 
-  cleanContents: (element)->
+  cleanContents: (element, opts = {})->
     #TODO: should config tags
+    
+
     if _.isUndefined(element)
       @element = $(@el).find('.section-inner')
     else
       @element = element
 
+    sanitize_transformers = [(input)->
+                    if (input.node_name == "span" && $(input.node).hasClass("defaultValue") )
+                      return whitelist_nodes: [input.node]
+                    else
+                      return null
+                  (input)->
+                    #page embeds
+                    if(input.node_name == 'div' && $(input.node).hasClass("graf--mixtapeEmbed") )
+                      return whitelist_nodes: [input.node]
+                    else if(input.node_name == 'a' && $(input.node).parent(".graf--mixtapeEmbed").exists() )
+                      return attr_whitelist: ["style"]
+                    else
+                      return null
+                  ,
+                  (input)->
+                    #embeds
+                    if( input.node_name == 'figure' && $(input.node).hasClass("graf--iframe") )
+                      return whitelist_nodes: [input.node]
+                    else if(input.node_name == 'div' && $(input.node).hasClass("iframeContainer") && $(input.node).parent(".graf--iframe").exists() )
+                      return whitelist_nodes: [input.node]
+                    else if(input.node_name == 'iframe' && $(input.node).parent(".iframeContainer").exists() )
+                      return whitelist_nodes: [input.node]
+                    else if(input.node_name == 'figcaption' && $(input.node).parent(".graf--iframe").exists() )
+                      return whitelist_nodes: [input.node]
+                    else
+                      return null
+                  ,
+                  (input)->
+                    #image embeds
+                    if(input.node_name == 'figure' && $(input.node).hasClass("graf--figure") )
+                      return whitelist_nodes: [input.node]
+
+                    else if(input.node_name == 'div' && ( $(input.node).hasClass("aspectRatioPlaceholder") && $(input.node).parent(".graf--figure").exists() ))
+                      return whitelist_nodes: [input.node]
+
+                    else if(input.node_name == 'div' && ( $(input.node).hasClass("aspect-ratio-fill") && $(input.node).parent(".aspectRatioPlaceholder").exists() ))
+                      return whitelist_nodes: [input.node]
+
+                    else if(input.node_name == 'img' && $(input.node).parent(".graf--figure").exists() )
+                      return whitelist_nodes: [input.node]
+
+                    else if(input.node_name == 'a' && $(input.node).parent(".graf--mixtapeEmbed").exists() )
+                      return attr_whitelist: ["style"]
+
+                    else if(input.node_name == 'figcaption' && $(input.node).parent(".graf--figure").exists())
+                      return whitelist_nodes: [input.node]
+
+                    else if(input.node_name == 'span' && $(input.node).parent(".imageCaption").exists())
+                      return whitelist_nodes: [input.node]
+                    else
+                      return null
+                  ]
+
+    sanitize_table_transformer = (input)->
+                    #tables
+                    if(input.node_name == 'table' || input.node_name == 'tbody' || input.node_name == 'thead' || input.node_name == 'tr' || input.node_name == 'th' || input.node_name == 'td')
+                      return whitelist_nodes: [input.node]
+                    else
+                      return null
+
+    sanitize_transformers.push sanitize_table_transformer if opts.allow_tables == true
+
     s = new Sanitize
-      elements: ['strong','img', 'em', 'br', 'a', 'blockquote', 'b', 'u', 'i', 'pre', 'p', 'h1', 'h2', 'h3', 'h4']
+      elements: ['strong','img', 'em', 'br', 'a', 'blockquote', 'b', 'u', 'i', 'pre', 'p', 'h1', 'h2', 'h3', 'h4', 'table', 'thead', 'tbody', 'tr', 'th', 'td']
 
       attributes:
         '__ALL__': ['class']
@@ -912,58 +977,8 @@ class Dante.Editor extends Dante.View
       protocols:
         a: { href: ['http', 'https', 'mailto'] }
 
-      transformers: [(input)->
-                      if (input.node_name == "span" && $(input.node).hasClass("defaultValue") )
-                        return whitelist_nodes: [input.node]
-                      else
-                        return null
-                    (input)->
-                      #page embeds
-                      if(input.node_name == 'div' && $(input.node).hasClass("graf--mixtapeEmbed") )
-                        return whitelist_nodes: [input.node]
-                      else if(input.node_name == 'a' && $(input.node).parent(".graf--mixtapeEmbed").exists() )
-                        return attr_whitelist: ["style"]
-                      else
-                        return null
-                    ,
-                    (input)->
-                      #embeds
-                      if( input.node_name == 'figure' && $(input.node).hasClass("graf--iframe") )
-                        return whitelist_nodes: [input.node]
-                      else if(input.node_name == 'div' && $(input.node).hasClass("iframeContainer") && $(input.node).parent(".graf--iframe").exists() )
-                        return whitelist_nodes: [input.node]
-                      else if(input.node_name == 'iframe' && $(input.node).parent(".iframeContainer").exists() )
-                        return whitelist_nodes: [input.node]
-                      else if(input.node_name == 'figcaption' && $(input.node).parent(".graf--iframe").exists() )
-                        return whitelist_nodes: [input.node]
-                      else
-                        return null
-                    ,
-                    (input)->
-                      #image embeds
-                      if(input.node_name == 'figure' && $(input.node).hasClass("graf--figure") )
-                        return whitelist_nodes: [input.node]
+      transformers: sanitize_transformers
 
-                      else if(input.node_name == 'div' && ( $(input.node).hasClass("aspectRatioPlaceholder") && $(input.node).parent(".graf--figure").exists() ))
-                        return whitelist_nodes: [input.node]
-
-                      else if(input.node_name == 'div' && ( $(input.node).hasClass("aspect-ratio-fill") && $(input.node).parent(".aspectRatioPlaceholder").exists() ))
-                        return whitelist_nodes: [input.node]
-
-                      else if(input.node_name == 'img' && $(input.node).parent(".graf--figure").exists() )
-                        return whitelist_nodes: [input.node]
-
-                      else if(input.node_name == 'a' && $(input.node).parent(".graf--mixtapeEmbed").exists() )
-                        return attr_whitelist: ["style"]
-
-                      else if(input.node_name == 'figcaption' && $(input.node).parent(".graf--figure").exists())
-                        return whitelist_nodes: [input.node]
-
-                      else if(input.node_name == 'span' && $(input.node).parent(".imageCaption").exists())
-                        return whitelist_nodes: [input.node]
-                      else
-                        return null
-                    ]
 
     if @element.exists()
       utils.log "CLEAN HTML"
