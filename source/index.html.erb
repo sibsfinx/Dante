@@ -11,6 +11,10 @@ title: Dante Editor example
     {
       el: "#editor",
       upload_url: "/uploads/new.json",
+      store_url: "http://localhost:3000/posts/magazin-inostrannoi-literatury-v-cheboksarah-zakryt-na-reviziu-do-19-yanvarya",
+      data_type: "json",
+      content_type: "application/json",
+      store_interval: 3000,
       allow_tables: true,
       debug: <%= build? ? false : true %>
     }

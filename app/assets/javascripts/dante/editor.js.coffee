@@ -29,6 +29,9 @@ class Dante.Editor extends Dante.View
     @current_node    = null
     @el = opts.el || "#editor"
     @upload_url      = opts.upload_url  || "/uploads.json"
+    @request_type    = opts.request_type || "post"
+    @data_type       = opts.data_type
+    @content_type    = opts.content_type || "application/x-www-form-urlencoded; charset=UTF-8"
     @oembed_url      = opts.oembed_url  || "http://api.embed.ly/1/oembed?url="
     @extract_url     = opts.extract_url || "http://api.embed.ly/1/extract?key=86c28a410a104c8bb58848733c82f840&url="
     @default_loading_placeholder = opts.default_loading_placeholder || Dante.defaults.image_placeholder
@@ -66,7 +69,9 @@ class Dante.Editor extends Dante.View
       @content = @getContent()
       $.ajax
         url: @store_url
-        method: "post"
+        method: @request_type
+        dataType: @data_type if @data_type?.length > 0
+        contentType: @content_type if @content_type?.length > 0
         data: @getContent()
         success: (res)->
           utils.log "store!"
@@ -75,7 +80,11 @@ class Dante.Editor extends Dante.View
           @store()
 
   getContent: ()->
-    $(@el).find(".section-inner").html()
+    content = $(@el).find(".section-inner").html()
+    if @content_type == 'application/json'
+      JSON.stringify({editor_content: content})
+    else
+      content
 
   renderTitle: ()->
     "<h3 class='graf graf--h3'>#{@title_placeholder} </h3>"

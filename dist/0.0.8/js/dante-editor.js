@@ -451,6 +451,9 @@
       this.current_node = null;
       this.el = opts.el || "#editor";
       this.upload_url = opts.upload_url || "/uploads.json";
+      this.request_type = opts.request_type || "post";
+      this.data_type = opts.data_type;
+      this.content_type = opts.content_type || "application/x-www-form-urlencoded; charset=UTF-8";
       this.oembed_url = opts.oembed_url || "http://api.embed.ly/1/oembed?url=";
       this.extract_url = opts.extract_url || "http://api.embed.ly/1/extract?key=86c28a410a104c8bb58848733c82f840&url=";
       this.default_loading_placeholder = opts.default_loading_placeholder || Dante.defaults.image_placeholder;
@@ -486,6 +489,7 @@
     };
 
     Editor.prototype.checkforStore = function() {
+      var _ref, _ref1;
       if (this.content === this.getContent()) {
         utils.log("content not changed skip store");
         return this.store();
@@ -494,7 +498,9 @@
         this.content = this.getContent();
         return $.ajax({
           url: this.store_url,
-          method: "post",
+          method: this.request_type,
+          dataType: ((_ref = this.data_type) != null ? _ref.length : void 0) > 0 ? this.data_type : void 0,
+          contentType: ((_ref1 = this.content_type) != null ? _ref1.length : void 0) > 0 ? this.content_type : void 0,
           data: this.getContent(),
           success: function(res) {
             utils.log("store!");
@@ -510,7 +516,15 @@
     };
 
     Editor.prototype.getContent = function() {
-      return $(this.el).find(".section-inner").html();
+      var content;
+      content = $(this.el).find(".section-inner").html();
+      if (this.content_type === 'application/json') {
+        return JSON.stringify({
+          editor_content: content
+        });
+      } else {
+        return content;
+      }
     };
 
     Editor.prototype.renderTitle = function() {
