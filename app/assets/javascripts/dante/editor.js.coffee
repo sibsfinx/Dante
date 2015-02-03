@@ -81,9 +81,11 @@ class Dante.Editor extends Dante.View
 
   getContent: ()->
     content = $(@el).find(".section-inner").html()
-    if @content_type == 'json'
+    if @content_type == 'application/json'
+      debugger
       JSON.stringify content
     else
+      debugger
       content
 
   renderTitle: ()->
