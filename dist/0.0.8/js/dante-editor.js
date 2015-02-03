@@ -516,7 +516,13 @@
     };
 
     Editor.prototype.getContent = function() {
-      return $(this.el).find(".section-inner").html();
+      var content;
+      content = $(this.el).find(".section-inner").html();
+      if (this.content_type === 'json') {
+        return JSON.stringify(content);
+      } else {
+        return content;
+      }
     };
 
     Editor.prototype.renderTitle = function() {
